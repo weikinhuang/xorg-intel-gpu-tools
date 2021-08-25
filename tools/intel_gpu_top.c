@@ -150,6 +150,26 @@ static int igt_sysfs_scanf(int dir, const char *attr, const char *fmt, ...)
 	return ret;
 }
 
+static bool device_dir_exists(char *device)
+{
+	DIR* dir;
+	char buf[128] = {};
+	snprintf(buf, sizeof(buf) - 1, "/sys/devices/%s/events", device);
+
+	dir = opendir(buf);
+	if (dir) {
+	/* Directory exists. */
+		closedir(dir);
+		return true;
+	} else if (ENOENT == errno) {
+		/* Directory does not exist. */
+		return false;
+	} else {
+		/* opendir() failed for some other reason. */
+		return false;
+	}
+}
+
 static int pmu_parse(struct pmu_counter *pmu, const char *path, const char *str)
 {
 	locale_t locale, oldlocale;
@@ -2647,7 +2667,7 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
-	if (card.pci_slot_name[0] && !is_igpu_pci(card.pci_slot_name))
+	if (card.pci_slot_name[0] && !is_igpu_pci(card.pci_slot_name) && device_dir_exists(tr_pmu_name(&card)))
 		pmu_device = tr_pmu_name(&card);
 	else
 		pmu_device = strdup("i915");
